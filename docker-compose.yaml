@@ -1,0 +1,29 @@
+version: "3"
+services:
+  rakomqtt_state_watcher:
+    image: rakomqtt
+    container_name: rakomqtt_state_watcher
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      APP_MODE: state_watcher
+      MOSQUITTO_HOST: 127.0.0.1
+      MOSQUITTO_USER: ${MOSQUITTO_HASS_USER}
+      MOSQUITTO_PASSWORD: ${MOSQUITTO_HASS_PASSWORD}
+    network_mode: "host"
+  rakomqtt_commander:
+    image: rakomqtt
+    container_name: rakomqtt_commander
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      APP_MODE: commander
+      MOSQUITTO_HOST: 127.0.0.1
+      MOSQUITTO_USER: ${MOSQUITTO_HASS_USER}
+      MOSQUITTO_PASSWORD: ${MOSQUITTO_HASS_PASSWORD}
+    network_mode: "host"
+
