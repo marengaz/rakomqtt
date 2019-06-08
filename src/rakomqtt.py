@@ -39,10 +39,6 @@ def run_commander(rako_bridge: RakoBridge):
         # reconnect then subscriptions will be renewed.
         client.subscribe("rako/room/+/set")
 
-    def on_disconnect(client, userdata, rc):
-        if rc != 0:
-            logger.info("Unexpected MQTT disconnection. Will auto-reconnect")
-
     # The callback for when a PUBLISH message is received from the server.
     def on_message(client, userdata, msg: mqtt.MQTTMessage):
         m = re.match('^rako/room/([0-9]+)/set$', msg.topic)
@@ -57,7 +53,6 @@ def run_commander(rako_bridge: RakoBridge):
 
     mqttc = MQTTClient()
     mqttc.mqttc.on_connect = on_connect
-    mqttc.mqttc.on_disconnect = on_disconnect
     mqttc.mqttc.on_message = on_message
     mqttc.connect()
     mqttc.mqttc.loop_forever()

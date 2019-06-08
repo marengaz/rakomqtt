@@ -99,6 +99,7 @@ class RakoBridge(object):
 
         mqttc = MQTTClient()
         mqttc.connect()
+        mqttc.mqttc.loop_start()
 
         while True:
             resp = s.recvfrom(256)
