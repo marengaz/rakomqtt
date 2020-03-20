@@ -1,41 +1,42 @@
 import json
+import logging
 import socket
 import requests
 
-from src.MQTTClient import MQTTClient
-from src.logger import logger
 
-
+_LOGGER = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 10
 
 
-class RakoBridge(object):
+class RakoBridge:
     # for devices http://192.168.0.10/rako.xml
-    _port = 9761
+    port = 9761
     _timeout = DEFAULT_TIMEOUT
-
-    def __init__(self):
-        super(RakoBridge, self).__init__()
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        # bind to the default ip address using a system provided ephemeral port
-        sock.bind(('', 0))
-
-        logger.debug("Broadcasting to find rako bridge")
-        sock.sendto(b'D', ('255.255.255.255', self._port))
-        resp = sock.recvfrom(256)
-        logger.debug(resp)
-        if resp:
-            _, (self._host, _) = resp
-            self._url = 'http://{}/rako.cgi'.format(self._host)
-            logger.debug(f'found rako bridge at {self._host}')
-        else:
-            logger.error('Cannot find a rakobrige')
-
     scene_to_scene_command = {
         1: 3, 2: 4, 3: 5, 4: 6, 0: 0
     }
     scene_command_to_scene = {v: k for k, v in scene_to_scene_command.items()}
+
+    def __init__(self):
+        self._host = self.find_bridge()
+        self._url = 'http://{}/rako.cgi'.format(self._host)
+
+    @classmethod
+    def find_bridge(cls):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        # bind to the default ip address using a system provided ephemeral port
+        sock.bind(('', 0))
+        _LOGGER.debug("Broadcasting to try and find rako bridge...")
+        sock.sendto(b'D', ('255.255.255.255', cls.port))
+        resp = sock.recvfrom(256)
+        _LOGGER.debug(resp)
+        if resp:
+            _, (host, _) = resp
+            _LOGGER.debug(f'found rako bridge at {host}')
+            return host
+        else:
+            _LOGGER.error('Cannot find a rakobrige')
 
     @staticmethod
     def _rako_scene(brightness):
@@ -60,7 +61,6 @@ class RakoBridge(object):
 
     @staticmethod
     def _rako_brightness(scene):
-
         scene_brightness = {
             # rako_scene: brightness
             1: 255,
@@ -81,75 +81,57 @@ class RakoBridge(object):
         }
 
         try:
-            logger.debug('payload {}'.format(payload))
+            _LOGGER.debug('payload {}'.format(payload))
             requests.post(self._url, params=payload, timeout=self._timeout)
         except Exception as ex:
-            logger.error("Can't turn on %s. Is resource/endpoint offline?", self._url)
+            _LOGGER.error("Can't turn on %s. Is resource/endpoint offline?", self._url)
 
     @property
     def found_bridge(self):
         return bool(self._url)
 
-    def listen(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-        logger.info("Listening on udp %s:%s" % (self._host, self._port))
-        s.bind(("", self._port))
-
-        mqttc = MQTTClient()
-        mqttc.connect()
-        mqttc.mqttc.loop_start()
-
-        while True:
-            resp = s.recvfrom(256)
-            if resp:
-                byte_list = list(resp[0])
-                processed_bytes = self.process_udp_bytes(byte_list)
-                if not processed_bytes:
-                    continue
-                topic, mqtt_payload = processed_bytes
-                mqttc.publish(topic, json.dumps(mqtt_payload))
-
-    def process_udp_bytes(self, byte_list):
+    @classmethod
+    def process_udp_bytes(cls, byte_list):
         """
         see accessing-the-rako-bridge.pdf for decoding
         :param byte_list: List(Int)
         :return (topic: str, mqtt_payload: dict)
         """
-        logger.debug(f'received byte_list: {byte_list}')
+        _LOGGER.debug(f'received byte_list: {byte_list}')
         if byte_list[0] != 83:
-            logger.debug('not a status update - ignore')
+            _LOGGER.debug('not a status update - ignore')
             return
 
         if byte_list[1] == 7:
             if byte_list[5] != 49:
-                logger.debug('not a SET_SCENE command - ignore')
+                _LOGGER.debug('not a SET_SCENE command - ignore')
                 return
-            topic, payload = self.process_set_scene_bytes(byte_list)
+            topic, payload = cls.process_set_scene_bytes(byte_list)
         elif byte_list[1] == 5:
             if not (3 <= byte_list[5] <= 6) and byte_list[5] != 0:
-                logger.debug('not a SET_SCENE number command - ignore')
+                _LOGGER.debug('not a SET_SCENE number command - ignore')
                 return
-            topic, payload = self.process_set_scene_number_bytes(byte_list)
+            topic, payload = cls.process_set_scene_number_bytes(byte_list)
         else:
-            logger.debug('unhandled bytestring length - ignore')
+            _LOGGER.debug('unhandled bytestring length - ignore')
             return
 
         return topic, payload
 
-    def process_set_scene_number_bytes(self, byte_list):
+    @classmethod
+    def process_set_scene_number_bytes(cls, byte_list):
         room_id = byte_list[3]
         scene_command = byte_list[5]
-        scene_id = self.scene_command_to_scene[scene_command]
-        brightness = self._rako_brightness(scene_id)
-        return self.create_topic(room_id), self.create_payload(brightness)
+        scene_id = cls.scene_command_to_scene[scene_command]
+        brightness = cls._rako_brightness(scene_id)
+        return cls.create_topic(room_id), cls.create_payload(brightness)
 
-    def process_set_scene_bytes(self, byte_list):
+    @classmethod
+    def process_set_scene_bytes(cls, byte_list):
         room_id = byte_list[3]
         scene_id = byte_list[7]
-        brightness = self._rako_brightness(scene_id)
-        return self.create_topic(room_id), self.create_payload(brightness)
+        brightness = cls._rako_brightness(scene_id)
+        return cls.create_topic(room_id), cls.create_payload(brightness)
 
     @staticmethod
     def create_topic(room_id):

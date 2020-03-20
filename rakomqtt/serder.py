@@ -1,5 +1,6 @@
 import json
 
+
 def _default_serialisation(obj):
     """Default JSON serializer."""
     import calendar, datetime
@@ -14,12 +15,6 @@ class SerialisationError(Exception):
 
     def __init__(self, instance, errors):
         super().__init__(self, "Could not serialise {}, errors, {}".format(str(instance), str(json.dumps(errors))))
-
-
-class DeserialisationError(Exception):
-
-    def __init__(self, instance, errors):
-        super().__init__(self, "Could not deserialise {}, errors, {}".format(str(instance), str(json.dumps(errors))))
 
 
 def serialise(schema, cls_instance):
@@ -40,11 +35,8 @@ def deserialise(schema, string_or_dict):
     if isinstance(string_or_dict, dict):
         result, errors = schema.load(string_or_dict)
     elif isinstance(string_or_dict, str):
-        result, errors = schema.loads(string_or_dict)
+        result = schema.loads(string_or_dict)
     else:
         raise Exception('Unexpected arg type to deserialise {}'.format(str(type(string_or_dict))))
-
-    if len(errors) > 0:
-        raise DeserialisationError(string_or_dict, errors)
 
     return result
