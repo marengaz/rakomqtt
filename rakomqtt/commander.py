@@ -12,8 +12,8 @@ from rakomqtt.model import mqtt_payload_schema
 _LOGGER = logging.getLogger(__name__)
 
 
-def run_commander(mqtt_host, mqtt_user, mqtt_password):
-    rako_bridge = RakoBridge()
+def run_commander(rako_bridge_host, mqtt_host, mqtt_user, mqtt_password):
+    rako_bridge = RakoBridge(rako_bridge_host)
 
     # The callback for when the client receives a CONNACK response from the server.
     def on_connect(client, userdata, flags, rc):
@@ -30,10 +30,10 @@ def run_commander(mqtt_host, mqtt_user, mqtt_password):
             _LOGGER.debug(f"Topic unrecognised ${msg.topic}")
             return
 
-        room__id = int(m.group(1))
+        room_id = int(m.group(1))
         payload_str = str(msg.payload.decode("utf-8"))
         payload = serder.deserialise(mqtt_payload_schema, payload_str)
-        rako_bridge.post_scene(room__id, payload['brightness'])
+        rako_bridge.post_scene(room_id, payload['brightness'])
 
     mqttc = MQTTClient(mqtt_host, mqtt_user, mqtt_password)
     mqttc.mqttc.on_connect = on_connect

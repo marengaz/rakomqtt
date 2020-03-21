@@ -4,38 +4,51 @@ import requests
 
 
 _LOGGER = logging.getLogger(__name__)
-DEFAULT_TIMEOUT = 10
+DEFAULT_TIMEOUT = 5
 
 
 class RakoBridge:
     # for devices http://192.168.0.10/rako.xml
     port = 9761
-    _timeout = DEFAULT_TIMEOUT
     scene_to_scene_command = {
         1: 3, 2: 4, 3: 5, 4: 6, 0: 0
     }
     scene_command_to_scene = {v: k for k, v in scene_to_scene_command.items()}
 
-    def __init__(self):
-        self._host = self.find_bridge()
-        self._url = 'http://{}/rako.cgi'.format(self._host)
+    def __init__(self, host=None):
+        self.host = host if host else self.find_bridge()
+        self._url = 'http://{}/rako.cgi'.format(self.host)
 
     @classmethod
     def find_bridge(cls):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        # bind to the default ip address using a system provided ephemeral port
-        sock.bind(('', 0))
-        _LOGGER.debug("Broadcasting to try and find rako bridge...")
-        sock.sendto(b'D', ('255.255.255.255', cls.port))
-        resp = sock.recvfrom(256)
-        _LOGGER.debug(resp)
+        sock.settimeout(DEFAULT_TIMEOUT)
+
+        resp = cls.poll_for_bridge_response(sock)
         if resp:
             _, (host, _) = resp
             _LOGGER.debug(f'found rako bridge at {host}')
             return host
         else:
             _LOGGER.error('Cannot find a rakobrige')
+            exit(1)
+
+    @classmethod
+    def poll_for_bridge_response(cls, sock):
+        # bind to the default ip address using a system provided ephemeral port
+        sock.bind(('', 0))
+        i = 1
+        while i <= 3:
+            _LOGGER.debug("Broadcasting to try and find rako bridge...")
+            sock.sendto(b'D', ('255.255.255.255', cls.port))
+            try:
+                resp = sock.recvfrom(256)
+                _LOGGER.debug(resp)
+                return resp
+            except socket.timeout:
+                _LOGGER.debug(f"No rako bridge found on try #{i}")
+                i = i+1
 
     @staticmethod
     def _rako_scene(brightness):
@@ -81,7 +94,7 @@ class RakoBridge:
 
         try:
             _LOGGER.debug('payload {}'.format(payload))
-            requests.post(self._url, params=payload, timeout=self._timeout)
+            requests.post(self._url, params=payload, timeout=DEFAULT_TIMEOUT)
         except Exception as ex:
             _LOGGER.error("Can't turn on %s. Is resource/endpoint offline?", self._url)
 
@@ -139,3 +152,7 @@ class RakoBridge:
     @staticmethod
     def create_payload(brightness):
         return dict(state=('ON' if brightness else 'OFF'), brightness=brightness)
+
+
+if __name__ == '__main__':
+    print(RakoBridge().host)

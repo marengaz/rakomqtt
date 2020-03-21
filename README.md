@@ -9,7 +9,7 @@ Only tested with [mosquitto](https://mosquitto.org/)
 
 There are 2 modes (env var = `APP_MODE`):
 
-- `state_watcher` mode listens for the rako bridge to issue change of state commands, then posts a home assistant compatible message to your mqtt broker
+- `watcher` mode listens for the rako bridge to issue change of state commands, then posts a home assistant compatible message to your mqtt broker
 - `commander` mode subscribes to the home assistant topic and upon receiving a message, posts a command to the rako bridge
 
 
@@ -25,7 +25,7 @@ There are 4 env vars to be aware of:
 ## Run
 
 ```bash
-python -um src.rakomqtt
+python -um rakomqtt
 ```
 
 

@@ -29,7 +29,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("--version", action="version", version=__version__)
 
     parser.add_argument(
-        "--debug", action="store_true", help="Start rakomqtt debug mode", default=False
+        "--debug", action="store_true", help="Start rakomqtt in debug mode", default=False
     )
 
     parser.add_argument(
@@ -39,6 +39,12 @@ def get_args() -> argparse.Namespace:
         choices=['watcher', 'commander'],
         required=True,
         help="which mode to start rakomqtt in",
+    )
+
+    parser.add_argument(
+        "--rako-bridge-host",
+        type=str,
+        help="host name/ip of the rako bridge (Required for commander)",
     )
 
     parser.add_argument(
@@ -88,8 +94,11 @@ def run():
     _LOGGER.debug(f'Running the rakomqtt {args.mode}')
     if args.mode == "watcher":
         run_watcher(args.mqtt_host, args.mqtt_user, args.mqtt_password)
-    if args.mode == "commander":
-        run_commander(args.mqtt_host, args.mqtt_user, args.mqtt_password)
+    elif args.mode == "commander":
+        if not args.rako_bridge_host:
+            _LOGGER.error("--rako-bridge-host must be supplied for the commander")
+            exit(1)
+        run_commander(args.rako_bridge_host, args.mqtt_host, args.mqtt_user, args.mqtt_password)
 
 
 if __name__ == '__main__':
