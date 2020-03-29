@@ -1,4 +1,4 @@
-name: Build and Deploy to Docker Hub
+name: Build and Publish to Docker Hub
 
 #on:
 #  release:
@@ -8,20 +8,21 @@ on:
     branches: [ master ]
 
 env:
-  GITHUB_SHA: ${{ github.sha }}
   DOCKERHUB_HOSTNAME: "docker.io"
   DOCKERHUB_LIBRARY: marengaz
   DOCKERHUB_IMAGE: rakomqtt
-  IMAGE_ID: ${{ DOCKERHUB_HOSTNAME }}/${{ DOCKERHUB_LIBRARY }}/${{ DOCKERHUB_IMAGE }}
 
 jobs:
   setup-build-publish-deploy:
-    name: Setup, Build, Publish, and Deploy
+    name: Setup, Build, Publish
     runs-on: ubuntu-latest
     steps:
 
     - name: Checkout
       uses: actions/checkout@v2
+
+    - name: Set image id
+      run: echo "::set-env name=IMAGE_ID::${{ DOCKERHUB_HOSTNAME }}/${{ DOCKERHUB_LIBRARY }}/${{ DOCKERHUB_IMAGE }}"
 
 #    - name: Pull old image
 #      run: docker pull ${{ IMAGE_ID }}:latest
