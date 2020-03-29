@@ -1,12 +1,15 @@
 name: Build and Deploy to Docker Hub
 
+#on:
+#  release:
+#    types: [created]
 on:
-  release:
-    types: [created]
+  push:
+    branches: [ master ]
 
 env:
   GITHUB_SHA: ${{ github.sha }}
-  DOCKERHUB_HOSTNAME: docker.io
+  DOCKERHUB_HOSTNAME: "docker.io"
   DOCKERHUB_LIBRARY: marengaz
   DOCKERHUB_IMAGE: rakomqtt
   IMAGE_ID: ${{ DOCKERHUB_HOSTNAME }}/${{ DOCKERHUB_LIBRARY }}/${{ DOCKERHUB_IMAGE }}
