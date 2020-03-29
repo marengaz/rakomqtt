@@ -1,11 +1,8 @@
 name: Build and Publish to Docker Hub
 
-#on:
-#  release:
-#    types: [created]
 on:
-  push:
-    branches: [ master ]
+  release:
+    types: [created]
 
 env:
   DOCKERHUB_HOSTNAME: "docker.io"
@@ -24,11 +21,11 @@ jobs:
     - name: Set image id
       run: echo "::set-env name=IMAGE_ID::$DOCKERHUB_HOSTNAME/$DOCKERHUB_LIBRARY/$DOCKERHUB_IMAGE"
 
-#    - name: Pull old image
-#      run: docker pull ${{ IMAGE_ID }}:latest
+    - name: Pull old image
+      run: docker pull ${{ IMAGE_ID }}:latest
 
     - name: Build image
-      run: docker build . --file Dockerfile --tag $IMAGE_ID:latest  # --cache-from ${{ IMAGE_ID }}:latest
+      run: docker build . --file Dockerfile --tag $IMAGE_ID --cache-from ${{ IMAGE_ID }}:latest
 
     - name: Log into dockerhub
       run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login $DOCKERHUB_HOSTNAME -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
@@ -52,9 +49,5 @@ jobs:
         docker tag $IMAGE_ID $IMAGE_ID:$VERSION
         docker push $IMAGE_ID:$VERSION
 
-        # Use Docker `latest` tag convention
-        if [ "$VERSION" == "master" ]
-        then
-          docker tag $IMAGE_ID $IMAGE_ID:latest
-          docker push $IMAGE_ID:latest
-        fi
+        docker tag $IMAGE_ID $IMAGE_ID:latest
+        docker push $IMAGE_ID:latest
