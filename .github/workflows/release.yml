@@ -1,0 +1,52 @@
+name: Build and Deploy to Docker Hub
+
+on:
+  release:
+    types: [created]
+
+env:
+  GITHUB_SHA: ${{ github.sha }}
+  DOCKERHUB_HOSTNAME: docker.io
+  DOCKERHUB_LIBRARY: marengaz
+  DOCKERHUB_IMAGE: rakomqtt
+  IMAGE_ID: ${{ DOCKERHUB_HOSTNAME }}/${{ DOCKERHUB_LIBRARY }}/${{ DOCKERHUB_IMAGE }}
+
+jobs:
+  setup-build-publish-deploy:
+    name: Setup, Build, Publish, and Deploy
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+#    - name: Pull old image
+#      run: docker pull ${{ IMAGE_ID }}:latest
+
+    - name: Build image
+      run: docker build . --file Dockerfile --tag ${{ IMAGE_ID }}:latest  # --cache-from ${{ IMAGE_ID }}:latest
+
+    - name: Log into dockerhub
+      run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login ${{DOCKERHUB_HOSTNAME}} -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+    - name: Push image
+      run: |
+        echo "${{ github.ref }}"
+        echo "${{ github.sha }}"
+        echo "${{ github.base_ref }}"
+        echo "${{ github.head_ref }}"
+
+        # Strip git ref prefix from version
+        VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+        # Strip "v" prefix from tag name
+        [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+
+        # Use Docker `latest` tag convention
+        [ "$VERSION" == "master" ] && VERSION=latest
+
+        echo IMAGE_ID=$IMAGE_ID
+        echo VERSION=$VERSION
+
+        docker tag image $IMAGE_ID:$VERSION
+        docker push $IMAGE_ID:$VERSION
