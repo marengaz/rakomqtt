@@ -46,7 +46,7 @@ class RakoBridge:
                 resp = sock.recvfrom(256)
                 _LOGGER.debug(resp)
                 return resp
-            except socket.timeout:
+            except socket.timeout as ex:
                 _LOGGER.debug(f"No rako bridge found on try #{i}")
                 i = i + 1
 
