@@ -1,7 +1,7 @@
 import logging
 import socket
 import requests
-
+from urllib3.exceptions import HTTPError
 
 _LOGGER = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 5
@@ -48,7 +48,7 @@ class RakoBridge:
                 return resp
             except socket.timeout:
                 _LOGGER.debug(f"No rako bridge found on try #{i}")
-                i = i+1
+                i = i + 1
 
     @staticmethod
     def _rako_scene(brightness):
@@ -95,7 +95,7 @@ class RakoBridge:
         try:
             _LOGGER.debug('payload {}'.format(payload))
             requests.post(self._url, params=payload, timeout=DEFAULT_TIMEOUT)
-        except Exception as ex:
+        except HTTPError:
             _LOGGER.error("Can't turn on %s. Is resource/endpoint offline?", self._url)
 
     @property

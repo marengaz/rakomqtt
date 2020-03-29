@@ -1,7 +1,6 @@
 import json
 import unittest
 
-from rakomqtt import serder
 from rakomqtt.model import mqtt_payload_schema
 
 
@@ -17,7 +16,7 @@ class TestMarshmallowModels(unittest.TestCase):
     def test_deserialise_mqtt_payload(self):
         for test_name, in_str, exp_dict in self.deserialise_mqtt_payload_cases:
             with self.subTest(test_name):
-                payload_result = serder.deserialise(mqtt_payload_schema, in_str)
+                payload_result = mqtt_payload_schema.loads(in_str)
                 self.assertEqual(payload_result, exp_dict)
 
 

@@ -3,7 +3,6 @@ import re
 
 import paho.mqtt.client as mqtt
 
-from rakomqtt import serder
 from rakomqtt.MQTTClient import MQTTClient
 from rakomqtt.RakoBridge import RakoBridge
 from rakomqtt.model import mqtt_payload_schema
@@ -32,7 +31,7 @@ def run_commander(rako_bridge_host, mqtt_host, mqtt_user, mqtt_password):
 
         room_id = int(m.group(1))
         payload_str = str(msg.payload.decode("utf-8"))
-        payload = serder.deserialise(mqtt_payload_schema, payload_str)
+        payload = mqtt_payload_schema.loads(payload_str)
         rako_bridge.post_scene(room_id, payload['brightness'])
 
     mqttc = MQTTClient(mqtt_host, mqtt_user, mqtt_password)
