@@ -28,14 +28,20 @@ The docker container runs 2 processes
 1. On the 'Containers' view, click  'Add Container'
     1. Name = rakomqtt
     1. Image = marengaz/rakomqtt
-![name/image](img/create_container1.png)
+
+     ![name/image](img/create_container1.png)
+
     1. in 'Advanced container settings' > 'Command & logging'
         1. Command = ./start.sh --mqtt-host <your_host_ip> --mqtt-user <your_username> --mqtt-password <your_password> --debug 
-![command](img/create_container2.png)
+
+         ![command](img/create_container2.png)
+
     1. in 'Advanced container settings' > 'Network'
         1. Network = host
         1. Hostname = <your_hostname>
-![network](img/create_container3.png)
+
+         ![network](img/create_container3.png)
+
 1. Click the 'Deploy the container' button
 1. The container should now launch and be viewable in the 'Containers' tab 
 
