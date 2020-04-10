@@ -7,4 +7,4 @@ WORKDIR /deploy
 RUN pip install -r requirements.txt
 
 ADD ./rakomqtt /deploy/rakomqtt/
-ENTRYPOINT ["./start.sh"]
+CMD ["./start.sh"]

@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
-    entrypoint:
+    command:
       - "./start.sh"
       - "--mqtt-host"
       - "127.0.0.1"
