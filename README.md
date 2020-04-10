@@ -57,7 +57,7 @@ There are a bunch of different ways to do this:
 
 ### Identify your rooms
 
-Visit http://<RA-BRIDGE-IP>/rako.xml.
+Visit `http://<RA-BRIDGE-IP>/rako.xml`.
 This will present a list of all the rooms in your house along with their internal ids 
 
 ### Home assistant light config
