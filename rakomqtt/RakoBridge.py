@@ -55,7 +55,7 @@ class RakoStatusMessage:
         room = byte_list[3]
         channel = byte_list[4]
         command = RakoCommandType(byte_list[5])
-        data = byte_list[6:6+data_length]
+        data = byte_list[6:6 + data_length]
 
         if command in (RakoCommandType.LEVEL_SET_LEGACY, RakoCommandType.SET_LEVEL):
             return cls(

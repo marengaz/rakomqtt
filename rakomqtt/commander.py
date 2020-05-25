@@ -31,7 +31,6 @@ def run_commander(rako_bridge_host, mqtt_host, mqtt_user, mqtt_password):
         if rako_command:
             rako_bridge.post_command(rako_command)
 
-
     mqttc = MQTTClient(mqtt_host, mqtt_user, mqtt_password)
     mqttc.mqttc.on_connect = on_connect
     mqttc.mqttc.on_message = on_message
