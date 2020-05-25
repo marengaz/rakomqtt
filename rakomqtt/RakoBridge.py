@@ -188,7 +188,7 @@ class RakoBridge:
                 i = i + 1
 
     def post_command(self, rako_command: RakoCommand):
-        if rako_command.scene:
+        if rako_command.scene is not None:
             payload = {
                 'room': rako_command.room,
                 'ch': rako_command.channel,
