@@ -6,7 +6,7 @@
 
 ## About
 
-A component to attach rako lights (via the rako bridge) to an mqtt broker for use with home assistant.
+A component to attach Rako lights (via the Rako bridge) to an mqtt broker for use with home assistant.
 [Rako bridge interaction guide](accessing-the-rako-bridge.pdf).
 
 Only tested with [mosquitto](https://mosquitto.org/)
@@ -15,8 +15,8 @@ Only tested with [mosquitto](https://mosquitto.org/)
 
 The docker container runs 2 processes
 
-- `watcher` mode listens for the rako bridge to broadcast change of state updates, then posts a home assistant compatible message to your mqtt broker
-- `commander` mode subscribes to the home assistant command topic and upon receiving a message, posts a command to the rako bridge via http
+- `watcher` mode listens for the Rako bridge to broadcast change of state updates, then posts a home assistant compatible message to your mqtt broker
+- `commander` mode subscribes to the home assistant command topic and upon receiving a message, posts a command to the Rako bridge via http
 
 ![System architecture](img/rakomqtt.png)
 
@@ -63,6 +63,11 @@ This will present a list of all the rooms in your house along with their interna
 ### Home assistant light config
 
 Use the Home assistant [mqtt light platform](https://www.home-assistant.io/components/light.mqtt/). 
+
+#### Room scenes
+
+Rako room scenes 1,2,3,4,off are mapped to home assistant brightness levels 255,192,128,64,0 respectively (1 being the brightest, 4 being the dimmest).
+
 ```yaml
 - platform: mqtt
   name: <name of the room>
@@ -81,6 +86,34 @@ For example
   command_topic: "rako/room/42/set"
   brightness: true
 ```
+
+#### Channel levels 
+
+More granular control can be achieved with channel level commands. 
+
+NOTE: When lots of channels are changed at once, it's possible the Rako bridge will drop some commands leaving some channels unchanged. 
+
+NOTE: Rako's channel 0 in any room controls all the lights in that room
+
+```yaml
+- platform: mqtt
+  name: <name of the room>
+  schema: json
+  state_topic: "rako/room/<rako-room-id>/channel/<rako-channel-id>"
+  command_topic: "rako/room/<rako-room-id>/channel/<rako-channel-id>/set"
+  brightness: true
+```
+
+For example
+```yaml
+- platform: mqtt
+  name: Hallway Downlights
+  schema: json
+  state_topic: "rako/room/42/channel/1"
+  command_topic: "rako/room/42/channel/1/set"
+  brightness: true
+```
+
 
 ## Dev
 

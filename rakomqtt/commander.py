@@ -1,11 +1,8 @@
 import logging
-import re
-
 import paho.mqtt.client as mqtt
 
 from rakomqtt.MQTTClient import MQTTClient
-from rakomqtt.RakoBridge import RakoBridge
-from rakomqtt.model import mqtt_payload_schema
+from rakomqtt.RakoBridge import RakoBridge, RakoCommand
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,19 +17,19 @@ def run_commander(rako_bridge_host, mqtt_host, mqtt_user, mqtt_password):
 
         # Subscribing in on_connect() means that if we lose the connection and
         # reconnect then subscriptions will be renewed.
-        client.subscribe("rako/room/+/set")
+        result, mid = client.subscribe([
+            ("rako/room/+/set", 1),
+            ("rako/room/+/channel/+/set", 1),
+        ])
+        if result != mqtt.MQTT_ERR_SUCCESS:
+            _LOGGER.error("Couldn't subscribe to mqtt topics. Commander ain't gonna work")
 
     # The callback for when a PUBLISH message is received from the server.
     def on_message(client, userdata, msg: mqtt.MQTTMessage):
-        m = re.match('^rako/room/([0-9]+)/set$', msg.topic)
-        if not m:
-            _LOGGER.debug(f"Topic unrecognised ${msg.topic}")
-            return
+        rako_command = RakoCommand.from_mqtt(msg.topic, str(msg.payload.decode("utf-8")))
 
-        room_id = int(m.group(1))
-        payload_str = str(msg.payload.decode("utf-8"))
-        payload = mqtt_payload_schema.loads(payload_str)
-        rako_bridge.post_scene(room_id, payload['brightness'])
+        if rako_command:
+            rako_bridge.post_command(rako_command)
 
     mqttc = MQTTClient(mqtt_host, mqtt_user, mqtt_password)
     mqttc.mqttc.on_connect = on_connect
