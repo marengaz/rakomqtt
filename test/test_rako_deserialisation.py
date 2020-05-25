@@ -1,6 +1,7 @@
+import json
 import unittest
 
-from rakomqtt.RakoBridge import RakoStatusMessage, RakoCommandType, RakoBridge
+from rakomqtt.RakoBridge import RakoStatusMessage, RakoCommandType, RakoBridge, RakoCommand
 from rakomqtt.model import mqtt_payload_schema
 
 
@@ -47,6 +48,26 @@ class TestRakoWatching(unittest.TestCase):
                 payload_result = RakoBridge.create_payload(in_msg)
                 self.assertEqual(payload_result, exp_payload)
 
+
+class TestRakoCommanding(unittest.TestCase):
+    """
+    Testing commands from mqtt are properly interpreted
+    """
+    deserialise_topic_payload = [
+        # name, in_topic, in_payload, expected
+        ("base level", 'rako/room/13/channel/1/set', json.dumps({"state": "ON", "brightness": 25}), RakoCommand(13,1,None,25)),
+        ("diff room channel", 'rako/room/5/channel/42/set', json.dumps({"state": "ON", "brightness": 25}), RakoCommand(5,42,None,25)),
+        ("diff level", 'rako/room/5/channel/42/set', json.dumps({"state": "ON", "brightness": 90}), RakoCommand(5,42,None,90)),
+        ("scene base", 'rako/room/5/set', json.dumps({"state": "ON", "brightness": 90}), RakoCommand(5,0,4,None)),
+        ("diff scene", 'rako/room/5/set', json.dumps({"state": "ON", "brightness": 100}), RakoCommand(5,0,3,None)),
+        ("diff room", 'rako/room/9/set', json.dumps({"state": "ON", "brightness": 100}), RakoCommand(9,0,3,None)),
+    ]
+
+    def test_deserialise_topic_payload(self):
+        for name, in_topic, in_payload, expected in self.deserialise_topic_payload:
+            with self.subTest(name):
+                cmd_result = RakoCommand.from_mqtt(in_topic, in_payload)
+                self.assertEqual(cmd_result, expected)
 
 
 

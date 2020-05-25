@@ -1,10 +1,13 @@
 import logging
+import re
 import socket
 from dataclasses import dataclass
 
 import requests
 from enum import Enum
 from urllib3.exceptions import HTTPError
+
+from rakomqtt.model import mqtt_payload_schema
 
 _LOGGER = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 5
@@ -44,7 +47,7 @@ class RakoStatusMessage:
     @classmethod
     def from_byte_list(cls, byte_list):
         if chr(byte_list[0]) != 'S':
-            raise RakoDeserialisationException(f'Unsupported message type: {chr(byte_list[0])}')
+            raise RakoDeserialisationException(f'Unsupported UDP message type: {chr(byte_list[0])}')
 
         data_length = byte_list[1] - 5
         room = byte_list[3]
@@ -81,6 +84,62 @@ class RakoStatusMessage:
         }
 
         return scene_brightness[rako_scene_number]
+
+
+@dataclass
+class RakoCommand:
+    room: int
+    channel: int
+    scene: int = None
+    brightness: int = None
+
+    @classmethod
+    def from_mqtt(cls, topic, payload_str):
+        m_scene = re.match('^rako/room/([0-9]+)/set$', topic)
+        m_level = re.match('^rako/room/([0-9]+)/channel/([0-9]+)/set$', topic)
+        if m_scene:
+            room_id = int(m_scene.group(1))
+            payload = mqtt_payload_schema.loads(payload_str)
+
+            return cls(
+                room=room_id,
+                channel=0,
+                scene=cls._rako_command(payload['brightness']),
+            )
+        elif m_level:
+            room_id = int(m_level.group(1))
+            channel = int(m_level.group(2))
+            payload = mqtt_payload_schema.loads(payload_str)
+
+            return cls(
+                room=room_id,
+                channel=channel,
+                brightness=payload['brightness'],
+            )
+        else:
+            _LOGGER.debug(f"Topic unrecognised ${topic}")
+            return
+
+    @staticmethod
+    def _rako_command(brightness):
+        """Return the rako scene of the light. This directly corresponds
+        to the value of the button on the app and is accessed through the
+        brightness
+
+        :param brightness: int representing brightness 0-255
+        """
+
+        scene_windows = {
+            # rako_scene: (brightness_high, brightness_low)
+            1: dict(low=224, high=256),  # expect 255 (100%)
+            2: dict(low=160, high=224),  # expect 192 (75%)
+            3: dict(low=96, high=160),  # expect 128 (50%)
+            4: dict(low=1, high=96),  # expect 64 (25%)
+            0: dict(low=0, high=1),  # expect 0 (0%)
+        }
+
+        scene = [k for k, v in scene_windows.items() if v['low'] <= brightness < v['high']]
+        return scene[0]
 
 
 class RakoBridge:
@@ -122,40 +181,25 @@ class RakoBridge:
                 _LOGGER.debug(f"No rako bridge found on try #{i}")
                 i = i + 1
 
-    @staticmethod
-    def _rako_scene(brightness):
-        """Return the rako scene of the light. This directly corresponds
-        to the value of the button on the app and is accessed through the
-        brightness
-
-        :param brightness: int representing brightness 0-255
-        """
-
-        scene_windows = {
-            # rako_scene: (brightness_high, brightness_low)
-            1: dict(low=224, high=256),  # expect 255 (100%)
-            2: dict(low=160, high=224),  # expect 192 (75%)
-            3: dict(low=96, high=160),  # expect 128 (50%)
-            4: dict(low=1, high=96),  # expect 64 (25%)
-            0: dict(low=0, high=1),  # expect 0 (0%)
-        }
-
-        scene = [k for k, v in scene_windows.items() if v['low'] <= brightness < v['high']]
-        return scene[0]
-
-    def post_scene(self, room_id, brightness):
-        scene = self._rako_scene(brightness)
-        payload = {
-            'room': room_id,
-            'ch': 0,
-            'com': SCENE_NUMBER_TO_COMMAND[scene]
-        }
+    def post_command(self, rako_command: RakoCommand):
+        if rako_command.scene:
+            payload = {
+                'room': rako_command.room,
+                'ch': rako_command.channel,
+                'sc': rako_command.scene,
+            }
+        else:
+            payload = {
+                'room': rako_command.room,
+                'ch': rako_command.channel,
+                'lev': rako_command.brightness,
+            }
 
         try:
             _LOGGER.debug('payload {}'.format(payload))
             requests.post(self._url, params=payload, timeout=DEFAULT_TIMEOUT)
         except HTTPError:
-            _LOGGER.error("Can't turn on %s. Is resource/endpoint offline?", self._url)
+            _LOGGER.error(f"Can't turn on {self._url}. Is resource/endpoint offline?")
 
     @property
     def found_bridge(self):
