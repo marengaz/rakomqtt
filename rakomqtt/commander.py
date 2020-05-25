@@ -1,6 +1,5 @@
 import logging
 import paho.mqtt.client as mqtt
-from paho.mqtt.subscribeoptions import SubscribeOptions
 
 from rakomqtt.MQTTClient import MQTTClient
 from rakomqtt.RakoBridge import RakoBridge, RakoCommand

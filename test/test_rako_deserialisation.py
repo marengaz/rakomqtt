@@ -2,7 +2,6 @@ import json
 import unittest
 
 from rakomqtt.RakoBridge import RakoStatusMessage, RakoCommandType, RakoBridge, RakoCommand
-from rakomqtt.model import mqtt_payload_schema
 
 
 class TestRakoWatching(unittest.TestCase):
@@ -12,13 +11,15 @@ class TestRakoWatching(unittest.TestCase):
 
     deserialise_bytelist_cases = [
         # name, in, expected
-        ("base level", [83, 7, 0, 13, 1, 12, 42, 42, 136], RakoStatusMessage(13,1,RakoCommandType.LEVEL_SET_LEGACY,None,42)),
-        ("diff brightness", [83, 7, 0, 13, 1, 12, 16, 16, 136], RakoStatusMessage(13,1,RakoCommandType.LEVEL_SET_LEGACY,None,16)),
-        ("diff room channel", [83, 7, 0, 10, 2, 12, 16, 16, 136], RakoStatusMessage(10,2,RakoCommandType.LEVEL_SET_LEGACY,None,16)),
-        ("set scene base", [83, 5, 0, 13, 0, 6, 237], RakoStatusMessage(13,0,RakoCommandType.SC4_LEGACY,4,64)),
-        ("diff scene", [83, 5, 0, 13, 0, 4, 239], RakoStatusMessage(13,0,RakoCommandType.SC2_LEGACY,2,192)),
-        ("diff room", [83, 5, 0, 21, 0, 6, 229], RakoStatusMessage(21,0,RakoCommandType.SC4_LEGACY,4,64)),
-        ("room off", [83, 5, 0, 21, 0, 0, 235], RakoStatusMessage(21,0,RakoCommandType.OFF,0,0)),
+        ("base level legacy", [83, 7, 0, 13, 1, 12, 42, 42, 136], RakoStatusMessage(13,1,RakoCommandType.SET_LEVEL,None,42)),
+        ("base level", [83, 7, 0, 5, 1, 52, 1, 255, 198], RakoStatusMessage(5,1,RakoCommandType.SET_LEVEL,None,255)),
+        ("diff brightness legacy", [83, 7, 0, 13, 1, 12, 16, 16, 136], RakoStatusMessage(13,1,RakoCommandType.SET_LEVEL,None,16)),
+        ("diff room channel legacy", [83, 7, 0, 10, 2, 12, 16, 16, 136], RakoStatusMessage(10,2,RakoCommandType.SET_LEVEL,None,16)),
+        ("scene base legacy", [83, 5, 0, 13, 0, 6, 237], RakoStatusMessage(13,0,RakoCommandType.SET_SCENE,4,64)),
+        ("base scene", [83, 7, 0, 17, 0, 49, 0, 2, 188], RakoStatusMessage(17,0,RakoCommandType.SET_SCENE,2,192)),
+        ("diff scene legacy", [83, 5, 0, 13, 0, 4, 239], RakoStatusMessage(13,0,RakoCommandType.SET_SCENE,2,192)),
+        ("diff room legacy", [83, 5, 0, 21, 0, 6, 229], RakoStatusMessage(21,0,RakoCommandType.SET_SCENE,4,64)),
+        ("room off", [83, 5, 0, 21, 0, 0, 235], RakoStatusMessage(21,0,RakoCommandType.SET_SCENE,0,0)),
     ]
 
     def test_deserialise_status_msg(self):
@@ -30,13 +31,13 @@ class TestRakoWatching(unittest.TestCase):
 
     create_topic_payload_cases = [
         # name, in, exp_topic, exp_payload
-        ("base level", RakoStatusMessage(13,1,RakoCommandType.LEVEL_SET_LEGACY,None,42), 'rako/room/13/channel/1', dict(state='ON', brightness=42)),
-        ("diff brightness", RakoStatusMessage(13,1,RakoCommandType.LEVEL_SET_LEGACY,None,16), 'rako/room/13/channel/1', dict(state='ON', brightness=16)),
-        ("diff room channel", RakoStatusMessage(10,2,RakoCommandType.LEVEL_SET_LEGACY,None,16), 'rako/room/10/channel/2', dict(state='ON', brightness=16)),
-        ("level off", RakoStatusMessage(10,2,RakoCommandType.LEVEL_SET_LEGACY,None,0), 'rako/room/10/channel/2', dict(state='OFF', brightness=0)),
-        ("set scene base", RakoStatusMessage(13,0,RakoCommandType.SC4_LEGACY,4,64), 'rako/room/13', dict(state='ON', brightness=64)),
-        ("diff scene", RakoStatusMessage(13,0,RakoCommandType.SC2_LEGACY,2,192), 'rako/room/13', dict(state='ON', brightness=192)),
-        ("diff room", RakoStatusMessage(21,0,RakoCommandType.SC4_LEGACY,4,64), 'rako/room/21', dict(state='ON', brightness=64)),
+        ("base level", RakoStatusMessage(13,1,RakoCommandType.SET_LEVEL,None,42), 'rako/room/13/channel/1', dict(state='ON', brightness=42)),
+        ("diff brightness", RakoStatusMessage(13,1,RakoCommandType.SET_LEVEL,None,16), 'rako/room/13/channel/1', dict(state='ON', brightness=16)),
+        ("diff room channel", RakoStatusMessage(10,2,RakoCommandType.SET_LEVEL,None,16), 'rako/room/10/channel/2', dict(state='ON', brightness=16)),
+        ("level off", RakoStatusMessage(10,2,RakoCommandType.SET_LEVEL,None,0), 'rako/room/10/channel/2', dict(state='OFF', brightness=0)),
+        ("set scene base", RakoStatusMessage(13,0,RakoCommandType.SET_SCENE,4,64), 'rako/room/13', dict(state='ON', brightness=64)),
+        ("diff scene", RakoStatusMessage(13,0,RakoCommandType.SET_SCENE,2,192), 'rako/room/13', dict(state='ON', brightness=192)),
+        ("diff room", RakoStatusMessage(21,0,RakoCommandType.SET_SCENE,4,64), 'rako/room/21', dict(state='ON', brightness=64)),
         ("room off", RakoStatusMessage(21,0,RakoCommandType.OFF,0,0), 'rako/room/21', dict(state='OFF', brightness=0)),
     ]
 

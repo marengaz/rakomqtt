@@ -1,13 +1,13 @@
 import logging
 import re
 import socket
-from dataclasses import dataclass
-
 import requests
 from enum import Enum
+from dataclasses import dataclass
 from urllib3.exceptions import HTTPError
 
 from rakomqtt.model import mqtt_payload_schema
+
 
 _LOGGER = logging.getLogger(__name__)
 DEFAULT_TIMEOUT = 5
@@ -20,6 +20,8 @@ class RakoCommandType(Enum):
     SC3_LEGACY = 5
     SC4_LEGACY = 6
     LEVEL_SET_LEGACY = 12
+    SET_SCENE = 49
+    SET_LEVEL = 52
 
 
 SCENE_NUMBER_TO_COMMAND = {
@@ -52,22 +54,26 @@ class RakoStatusMessage:
         data_length = byte_list[1] - 5
         room = byte_list[3]
         channel = byte_list[4]
-        command = RakoCommandType(byte_list[5])  # raises ValueError
+        command = RakoCommandType(byte_list[5])
         data = byte_list[6:6+data_length]
 
-        if command == RakoCommandType.LEVEL_SET_LEGACY:
+        if command in (RakoCommandType.LEVEL_SET_LEGACY, RakoCommandType.SET_LEVEL):
             return cls(
                 room=room,
                 channel=channel,
-                command=command,
-                brightness=data[0],  # raises IndexError
+                command=RakoCommandType.SET_LEVEL,
+                brightness=data[1],
             )
         else:
-            scene = SCENE_COMMAND_TO_NUMBER[command]
+            if command == RakoCommandType.SET_SCENE:
+                scene = data[1]
+            else:
+                scene = SCENE_COMMAND_TO_NUMBER[command]
+
             return cls(
                 room=room,
                 channel=channel,
-                command=command,
+                command=RakoCommandType.SET_SCENE,
                 scene=scene,
                 brightness=cls._scene_brightness(scene),
             )
@@ -227,7 +233,7 @@ class RakoBridge:
 
     @staticmethod
     def create_topic(rako_status_message: RakoStatusMessage):
-        if rako_status_message.command == RakoCommandType.LEVEL_SET_LEGACY:
+        if rako_status_message.command == RakoCommandType.SET_LEVEL:
             return f"rako/room/{rako_status_message.room}/channel/{rako_status_message.channel}"
         else:
             return f"rako/room/{rako_status_message.room}"
