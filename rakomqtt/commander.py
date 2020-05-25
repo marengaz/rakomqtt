@@ -18,10 +18,12 @@ def run_commander(rako_bridge_host, mqtt_host, mqtt_user, mqtt_password):
 
         # Subscribing in on_connect() means that if we lose the connection and
         # reconnect then subscriptions will be renewed.
-        client.subscribe(
-            ("rako/room/+/set", SubscribeOptions(qos=1)),
-            ("rako/room/+/channel/+/set", SubscribeOptions(qos=1)),
-        )
+        result, mid = client.subscribe([
+            ("rako/room/+/set", 1),
+            ("rako/room/+/channel/+/set", 1),
+        ])
+        if result != mqtt.MQTT_ERR_SUCCESS:
+            _LOGGER.error("Couldn't subscribe to mqtt topics. Commander ain't gonna work")
 
     # The callback for when a PUBLISH message is received from the server.
     def on_message(client, userdata, msg: mqtt.MQTTMessage):
