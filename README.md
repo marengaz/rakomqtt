@@ -6,6 +6,14 @@
 
 ## About
 
+**!!!! NO LONGER IN ACTIVE DEVELOPMENT !!!!**
+
+SEE: 
+- [Asynchronous Python client for Rako Controls Lighting](https://github.com/marengaz/python-rako)
+- [Home assistant core PR](https://github.com/home-assistant/core/pull/45915) for Home assistant - Rako integration, [installation instructions for the meantime](https://community.home-assistant.io/t/rako-lighting/3121/38?u=marengaz)
+
+**!!!! NO LONGER IN ACTIVE DEVELOPMENT !!!!**
+
 A component to attach Rako lights (via the Rako bridge) to an mqtt broker for use with home assistant.
 [Rako bridge interaction guide](accessing-the-rako-bridge.pdf).
 
